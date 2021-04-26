@@ -1,29 +1,12 @@
-// C3.js
-let chart = c3.generate({
-  bindto: '#chart', // HTML 元素綁定
-  data: {
-    type: "pie",
-    columns: [
-      ['Louvre 雙人床架', 1],
-      ['Antony 雙人床架', 2],
-      ['Anty 雙人床架', 3],
-      ['其他', 4],
-    ],
-    colors: {
-      "Louvre 雙人床架": "#DACBFF",
-      "Antony 雙人床架": "#9D7FEA",
-      "Anty 雙人床架": "#5434A7",
-      "其他": "#301E5F",
-    }
-  },
-});
 //dom區
-const orderList = document.querySelector('.js-order-list');
+const orderList = document.querySelector('.js-order-list');//訂單資料區塊tbody
+
+const discardAllBtn = document.querySelector('.discardAllBtn');//刪除全部訂單按鈕
+
 
 //渲染畫面初始化
 function init() {
   getOrderList();//渲染訂單區塊
-  renderC3();//渲染C3區塊
 }
 init();
 
@@ -137,7 +120,7 @@ function changeOrderStatus(status, id) {
       alert('已修改訂單處理狀態');//提示
       getOrderList();//重新渲染訂單區塊
     })
-}
+};
 
 //刪除按鈕 刪除該筆訂單資料 delete 特定訂單id請求
 function deleteOrderItem(id) {
@@ -151,9 +134,64 @@ function deleteOrderItem(id) {
       alert('刪除該筆訂單成功');//提示
       getOrderList();//重新渲染
     })
-}
+};
 
 //C3圖形渲染
 function renderC3() {
+  console.log(orderData);//測試有無撈取到orderData陣列資料
+  //物件資料蒐集
+  let total = {};
+  orderData.forEach((item) => {
+    item.products.forEach((productItem) => {//將item寫成productItem才不會搞混上層
+      if (total[productItem.category] === undefined) {//total{}如果total[productItem.category值不存在
+        total[productItem.category] = productItem.price * productItem.quantity;//各品單價*各品數量 
+      } else {
+        total[productItem.category] += productItem.price * productItem.quantity;
+      }
+    })
+  })
+  //console.log(total);//測試
+  //做出資料關聯
+  let categoryAry = Object.keys(total);
+  //做c3圖形的資料格式
+  let newData = [];
+  categoryAry.forEach((item) => {
+    let ary = [];
+    ary.push(item);
+    ary.push(total[item]);
+    newData.push(ary);
+  });
+  //console.log(newData);//測試
 
-}
+  //console.log(categoryAry);//測試
+  //c3.js
+  let chart = c3.generate({
+    bindto: '#chart', // HTML 元素綁定
+    data: {
+      type: "pie",
+      columns: newData,
+      //更改顏色部份
+      /*colors: {
+        "Louvre 雙人床架": "#DACBFF",
+        "Antony 雙人床架": "#9D7FEA",
+        "Anty 雙人床架": "#5434A7",
+        "其他": "#301E5F",
+      }*/
+    },
+  });
+};
+
+//刪除全部訂單按鈕
+discardAllBtn.addEventListener('click', (e) => {
+  e.preventDefault;//取消a標籤預設
+  //刪除請求
+  axios.delete(`${adminUrl}/${api_path}/orders`, {
+    headers: {
+      'Authorization': token,
+    }
+  })
+    .then((res) => {
+      alert('刪除全部訂單成功');//提示
+      getOrderList();//重新渲染
+    })
+});
